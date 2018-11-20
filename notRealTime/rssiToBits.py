@@ -44,15 +44,6 @@ def KnuthMorrisPratt(text, pattern):
         if matchLen == len(pattern):
             yield startPos
 
-# Normalization
-def normalize(x):
-    return (x - min(x))/float((max(x) - min(x)))
-
-# Filtering
-def movingAverage(x, N):
-    cumsum = np.cumsum(np.insert(x, 0, 0))
-    return (cumsum[N:] - cumsum[:-N]) / N
-
 # With Preamble
 def extractBits(sequences, preambleSequence, samplesPerBit, nbits):
     stream = [[]]*len(sequences)
@@ -61,7 +52,7 @@ def extractBits(sequences, preambleSequence, samplesPerBit, nbits):
     k = 0
     for i in sequences:
         stream[k] = rssiVals[i:i+len(preambleSequence)+int(nbits*samplesPerBit)]
-        # Compress the bits to nBit-format 
+        # Compress the bits to nBit-format
         for j in range(0, 4+nbits):
             bit = stream[k][j + j*samplesPerBit]
             bitStream.append(bit)
@@ -78,7 +69,7 @@ def extractBits_2(sequences, preambleSequence, samplesPerBit, nbits):
     k = 0
     for i in sequences:
         stream[k] = rssiVals[i+len(preambleSequence):i+len(preambleSequence)+int(nbits*samplesPerBit)-1]
-        # Compress the bits to nBit-format 
+        # Compress the bits to nBit-format
         for j in range(0, nbits):
             bit = stream[k][j + j*samplesPerBit]
             bitStream.append(bit)
@@ -99,20 +90,21 @@ rssiData = pd.concat(list_)
 
 meanRssi = -80 # Hardcoded
 
-# r1 = receiver 1, r2 = receiver 2, etc ...
-rssiData.columns = ['r1']
-
-# Select RSSI values from each receiver
-r1 = np.asarray(rssiData["r1"])
-
-# Process Data
+# Parameters
 sample_period = 1e-3
 bitDuration = 0.01 # seconds
+nbits = 4
 
 # Generate Preamble sequence
 samplesPerBit = int(bitDuration/sample_period)
 preamble = np.array([0, 1, 1, 0])
 preambleSequence = generatePreambleSequence(preamble, samplesPerBit)
+
+# r1 = receiver 1, r2 = receiver 2, etc ...
+rssiData.columns = ['r1']
+
+# Select RSSI values from each receiver
+r1 = np.asarray(rssiData["r1"])
 
 timeFrame = pd.DataFrame()
 for column in rssiData:
@@ -127,13 +119,13 @@ for column in rssiData:
         else:
             dropCount += 1
     rssiVals = rssi
-    
+
     #rssiVals = np.append(rssiVals, np.zeros(dropCount)) # Fix length
     rssiVals = np.append(rssiVals, [-120]*dropCount) # Fix length
 
     # Convert RSSI to binary (change later if needed)
     rssiVals = np.asarray(rssiVals)
-    highs = rssiVals > meanRssi 
+    highs = rssiVals > meanRssi
     lows = ~highs
     rssiVals[highs] = 1
     rssiVals[lows] = 0
@@ -145,7 +137,7 @@ for column in rssiData:
     # Create dataFrame of time samples
     timeFrame[column+'_time'] = x
 
-    # Find transitions between 0s and 1s 
+    # Find transitions between 0s and 1s
     transitions = np.where(rssiVals[:-1] != rssiVals[1:])[0]
     transitionTimes = x[transitions]
     transitionVals = rssiVals[transitions]
@@ -160,10 +152,18 @@ for i in range(0, len(sequences) - 1):
         sequences.pop(sequences[i+1])
 
 # Extract bits
-# Todo: accommodate for indexes that are right next to each other;
-# i.e. if the preamble is equal to the following bits
-nbits = 4
 bitStream, compressedBits = extractBits(sequences, preambleSequence, samplesPerBit, nbits)
+
+# Match Bits
+refBits = [0, 1, 1, 0, 1, 1, 1, 0]
+count = 0
+for i in range(0, len(compressedBits)):
+    if (compressedBits[i] == refBits):
+        count += 1
+
+# BitAccuracy
+accuracy = 100*(float(count)/len(compressedBits))
+print "Accuracy:", accuracy, "%"
 
 # Plot data
 #plt.step(timeFrame['r1_time'][0:20000], rssiData['r1'][0:20000])
