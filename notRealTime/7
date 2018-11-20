@@ -1,0 +1,91 @@
+import numpy as np
+import csv
+from matplotlib import pyplot as plt
+import glob
+import pandas as pd
+
+# Normalization
+def normalize(x):
+    return (x - min(x))/float((max(x) - min(x)))
+
+# Filtering
+def movingAverage(x, N):
+    cumsum = np.cumsum(np.insert(x, 0, 0))
+    return (cumsum[N:] - cumsum[:-N]) / N
+
+filePath = "rssiData"
+allFiles = glob.glob(filePath + "/*rssi.csv")
+
+# Read all files and create dataset
+list_ = []
+for file_ in allFiles:
+    df = pd.read_csv(file_, index_col=None, header=0)
+    list_.append(df)
+rssiData = pd.concat(list_)
+
+# r1 = receiver 1, r2 = receiver 2, etc ...
+rssiData.columns = ['r1']
+
+# Select RSSI values from each receiver
+r1 = np.asarray(rssiData["r1"])
+
+# Process Data
+filter_bw = 20
+sample_period = 250e-6
+bitDuration = 0.1 # seconds
+timeFrame = pd.DataFrame()
+for column in rssiData:
+    rssiVals = rssiData[column]
+
+    # Remove bad samples
+    rssi = []
+    dropCount = 0
+    for i in range(0, len(rssiVals)):
+        if rssiVals[i] < -80 and rssiVals[i] > -130:
+            rssi.append(rssiVals[i])
+        else:
+            dropCount += 1
+    rssiVals = rssi
+    
+ #   # Filter
+ #   rssiVals = movingAverage(rssiVals, filter_bw) 
+
+    # Normalize 
+    rssiVals = normalize(rssiVals)
+    rssiVals = np.append(rssiVals, np.zeros(dropCount)) # Fix length
+
+    # Convert RSSI to binary
+    rssiVals[rssiVals < np.max(rssiVals) - 0.2] = 0
+    rssiVals[rssiVals > np.min(rssiVals) + 0.5] = 1
+    rssiData[column] = rssiVals
+    #print rssiData[column]
+
+    # Time data
+    x = np.arange(0, len(rssiVals))*sample_period
+
+    # Create dataFrame of time samples
+    timeFrame[column+'_time'] = x
+
+    # Find transitions between 0s and 1s, then do below
+    transitions = np.where(rssiVals[:-1] != rssiVals[1:])[0]
+    if rssiVals[transitions[-1]] == 1:
+        for i in range(0, len(rssiVals[transitions[-1] : ])):
+            if (rssiVals[i] == 0):
+                transitions = np.append(transitions, i)
+                break
+        
+    transitionTimes = x[transitions]
+    zero_index = np.where(rssiVals[transitions] == 0)
+    one_index = np.where(rssiVals[transitions] == 1)
+    zero_times = x[zero_index]
+    one_times = x[one_index]
+    
+    # Compute time domain information
+#    digital_events = np.round(zero_times[1:] - one_times, 2)
+#    digital_timeDiff = np.round(one_times[1:] - zero_times[1:-1], 2)
+
+# Plot data
+plt.step(timeFrame['r1_time'], rssiData['r1'])
+plt.ylim([-0.2, 1.2])
+plt.ylabel("Digitized Signal")
+plt.show()
