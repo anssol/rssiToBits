@@ -4,13 +4,11 @@ import matplotlib.pyplot as plt
 n_groups = 3
 packetsent=0;
 
-
 font = {'family': 'serif',
         'color':  'black',
         'weight': 'normal',
         'size': 28,
         }
-
 
 highgainfname='rssi0.txt'
 #highgainfname='rssi1.txt'

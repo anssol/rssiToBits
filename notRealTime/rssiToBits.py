@@ -50,15 +50,18 @@ def extractBits(sequences, preambleSequence, samplesPerBit, nbits):
     compressedStream = [[]]*len(sequences)
     bitStream = []
     k = 0
-    for i in sequences:
-        stream[k] = rssiVals[i:i+len(preambleSequence)+int(nbits*samplesPerBit)]
-        # Compress the bits to nBit-format
-        for j in range(0, 4+nbits):
-            bit = stream[k][j + j*samplesPerBit]
-            bitStream.append(bit)
-        compressedStream[k] = bitStream
-        bitStream = []
-        k += 1
+    try:
+        for i in sequences:
+            stream[k] = rssiVals[i:i+len(preambleSequence)+int(nbits*samplesPerBit)]
+            # Compress the bits to nBit-format
+            for j in range(0, 4+nbits):
+                bit = stream[k][j + j*samplesPerBit]
+                bitStream.append(bit)
+            compressedStream[k] = bitStream
+            bitStream = []
+            k += 1
+    except:
+        pass
     return stream, compressedStream
 
 # No preamble
@@ -67,19 +70,55 @@ def extractBits_2(sequences, preambleSequence, samplesPerBit, nbits):
     compressedStream = [[]]*len(sequences)
     bitStream = []
     k = 0
-    for i in sequences:
-        stream[k] = rssiVals[i+len(preambleSequence):i+len(preambleSequence)+int(nbits*samplesPerBit)-1]
-        # Compress the bits to nBit-format
-        for j in range(0, nbits):
-            bit = stream[k][j + j*samplesPerBit]
-            bitStream.append(bit)
-        compressedStream[k] = bitStream
-        bitStream = []
-        k += 1
+    try:
+        for i in sequences:
+            stream[k] = rssiVals[i+len(preambleSequence):i+len(preambleSequence)+int(nbits*samplesPerBit)-1]
+            # Compress the bits to nBit-format
+            for j in range(0, nbits):
+                bit = stream[k][j + j*samplesPerBit]
+                bitStream.append(bit)
+            compressedStream[k] = bitStream
+            bitStream = []
+            k += 1
+    except:
+        pass
     return stream, compressedStream
 
-filePath = "rssiData/rsbits"
-allFiles = glob.glob(filePath + "/*rssi_1.csv")
+## Move to another file later ##
+def bool2int(x):
+    y = 0
+    for i,j in enumerate(x):
+        y += j << i
+    return y
+
+def getIdentifiers(decimalArray):
+    idArray = np.array([], dtype='string')
+    block_count = np.array([])
+    swipe_count = np.array([])
+    k = 0
+    for i in decimalArray:
+        if i == 1:
+            idArray = np.append(idArray, '1')
+        elif i == 2:
+            idArray = np.append(idArray, '2')
+            swipe_count = np.append(swipe_count, k)
+        elif i == 3:
+            idArray = np.append(idArray, '12')
+            block_count = np.append(block_count, k)
+        elif i == 4:
+            idArray = np.append(idArray, '3')
+        elif i == 8:
+            idArray = np.append(idArray, '4')
+        k += 1
+    return idArray.astype(int), block_count, swipe_count
+
+############
+
+# File directory
+#filePath = "rssiData/rsbits"
+#allFiles = glob.glob(filePath + "/*rssi_1.csv")
+filePath = "gestureData"
+allFiles = glob.glob(filePath + "/twoTaps_ambuj_final.csv")
 
 # Read all files and create dataset
 list_ = []
@@ -88,7 +127,7 @@ for file_ in allFiles:
     list_.append(df)
 rssiData = pd.concat(list_)
 
-meanRssi = -80 # Hardcoded
+meanRssi = -95 # Hardcoded
 
 # Parameters
 sample_period = 1e-3
@@ -97,8 +136,12 @@ nbits = 4
 
 # Generate Preamble sequence
 samplesPerBit = int(bitDuration/sample_period)
+samplesPerBit = 10
 preamble = np.array([0, 1, 1, 0])
 preambleSequence = generatePreambleSequence(preamble, samplesPerBit)
+#preambleSequence_2 = preambleSequence
+#preambleSequence_3 = preambleSequence_2[1:]
+#preambleSequence[10] = 0
 
 # r1 = receiver 1, r2 = receiver 2, etc ...
 rssiData.columns = ['r1']
@@ -118,6 +161,7 @@ for column in rssiData:
             rssi.append(rssiVals[i])
         else:
             dropCount += 1
+
     rssiVals = rssi
 
     #rssiVals = np.append(rssiVals, np.zeros(dropCount)) # Fix length
@@ -142,6 +186,8 @@ for column in rssiData:
     transitionTimes = x[transitions]
     transitionVals = rssiVals[transitions]
 
+rssiData.to_csv("rssivals.csv")
+
 # Extract preamble sequence from received RSSI
 sequences = []
 for s in KnuthMorrisPratt(rssiVals, preambleSequence): sequences.append(s)
@@ -160,14 +206,45 @@ count = 0
 for i in range(0, len(compressedBits)):
     if (compressedBits[i] == refBits):
         count += 1
-
 # BitAccuracy
 accuracy = 100*(float(count)/len(compressedBits))
 print "Accuracy:", accuracy, "%"
 
+########################################
+# Extract Decimal Array
+bitStream_2, compressedBits_2 = extractBits_2(sequences, preambleSequence, samplesPerBit, nbits)
+compressedBits_2 = [x for x in compressedBits_2 if x != []]
+compressedBits_2 = np.asarray(compressedBits_2)
+compressedBits_2 = compressedBits_2.astype(int)
+decimalArray = [bool2int(x) for x in compressedBits_2]
+
+# Determine node identifiers (passive Switch)
+identifiers, block_count, swipe_count = getIdentifiers(decimalArray) 
+
+# Determine gestures
+if len(block_count) > 0:
+    count = 0
+    for i in range(1, len(block_count)):
+        if abs(id_count[i-1] - id_count[i]) > 5:
+            print 'block'
+            count += 1
+
+if len(swipe_count) > 0:
+    count = 0
+    swipe = 0
+    for i in range(1, len(swipe_count)):
+        if abs(swipe_count[i] - swipe_count[i-1] == 1):
+            count += 1
+        elif abs(swipe_count[i] - swipe_count[i-1] > 10 and count > 1):
+            print 'swipe'
+            swipe += 1
+            count = 0
+########################################
+
 # Plot data
-#plt.step(timeFrame['r1_time'][0:20000], rssiData['r1'][0:20000])
+plt.step(timeFrame['r1_time'][5000:30000], rssiData['r1'][5000:30000])
+#plt.step(timeFrame['r1_time'], rssiData['r1'])
 #plt.step(timeFrame['r1_time'][0:5000], rssiData['r1'][0:5000])
-#plt.ylim([-0.2, 1.2])
-#plt.ylabel("Digitized Signal")
-#plt.show()
+plt.ylim([-0.2, 1.2])
+plt.ylabel("Digitized Signal")
+plt.show()
