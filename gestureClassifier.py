@@ -47,9 +47,9 @@ def plot_confusion_matrix(cm, classes, normalize=False,
 # 1. Import the CSV file 
 # 2. Label the data
 # 3. Implement a classifier
-swipe = pd.read_csv('trainingData/swipe.csv')
-push = pd.read_csv('trainingData/push.csv')
-pull = pd.read_csv('trainingData/pull.csv')
+#swipe = pd.read_csv('trainingData/swipe.csv')
+#push = pd.read_csv('trainingData/push.csv')
+#pull = pd.read_csv('trainingData/pull.csv')
 
 # Merge DataFrames
 data_train = pd.concat([swipe, push, pull])

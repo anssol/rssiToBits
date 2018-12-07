@@ -118,7 +118,7 @@ def getIdentifiers(decimalArray):
 #filePath = "rssiData/rsbits"
 #allFiles = glob.glob(filePath + "/*rssi_1.csv")
 filePath = "gestureData"
-allFiles = glob.glob(filePath + "/twoTaps_ambuj_final.csv")
+allFiles = glob.glob(filePath + "/subject_ambuj/twoTaps_ambuj_l1_final.csv")
 
 # Read all files and create dataset
 list_ = []
@@ -206,6 +206,7 @@ count = 0
 for i in range(0, len(compressedBits)):
     if (compressedBits[i] == refBits):
         count += 1
+
 # BitAccuracy
 accuracy = 100*(float(count)/len(compressedBits))
 print "Accuracy:", accuracy, "%"
@@ -224,21 +225,30 @@ identifiers, block_count, swipe_count = getIdentifiers(decimalArray)
 # Determine gestures
 if len(block_count) > 0:
     count = 0
+    block = 0
     for i in range(1, len(block_count)):
-        if abs(id_count[i-1] - id_count[i]) > 5:
+        if abs(block_count[i-1] - block_count[i]) > 5:
             print 'block'
+            block += 1
             count += 1
 
 if len(swipe_count) > 0:
     count = 0
     swipe = 0
+    twotaps = np.array([])
+    # Detect swipe
     for i in range(1, len(swipe_count)):
-        if abs(swipe_count[i] - swipe_count[i-1] == 1):
+        if abs(swipe_count[i] - swipe_count[i-1] < 3 and swipe_count[i] - swipe_count[i-1] > 0):
             count += 1
         elif abs(swipe_count[i] - swipe_count[i-1] > 10 and count > 1):
             print 'swipe'
+            twotaps = np.append(twotaps, swipe_count[i] - swipe_count[i-1])   
             swipe += 1
             count = 0
+         # Detect blocks
+         #if (swipe % 2 == 0):
+
+
 ########################################
 
 # Plot data
