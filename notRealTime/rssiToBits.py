@@ -118,7 +118,7 @@ def getIdentifiers(decimalArray):
 #filePath = "rssiData/rsbits"
 #allFiles = glob.glob(filePath + "/*rssi_1.csv")
 filePath = "gestureData"
-allFiles = glob.glob(filePath + "/subject_ambuj/twoTaps_ambuj_l1_final.csv")
+allFiles = glob.glob(filePath + "/subject_ahmad/swipe_ahmad_l1_final.csv")
 
 # Read all files and create dataset
 list_ = []
@@ -127,7 +127,7 @@ for file_ in allFiles:
     list_.append(df)
 rssiData = pd.concat(list_)
 
-meanRssi = -95 # Hardcoded
+meanRssi = -105 # Hardcoded
 
 # Parameters
 sample_period = 1e-3
