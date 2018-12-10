@@ -65,7 +65,7 @@ def extractBits(sequences, preambleSequence, samplesPerBit, nbits):
     return stream, compressedStream
 
 # No preamble
-def extractBits_2(sequences, preambleSequence, samplesPerBit, nbits):
+def extractDataBits(sequences, preambleSequence, samplesPerBit, nbits):
     stream = [[]]*len(sequences)
     compressedStream = [[]]*len(sequences)
     bitStream = []
@@ -92,33 +92,43 @@ def bool2int(x):
     return y
 
 def getIdentifiers(decimalArray):
-    idArray = np.array([], dtype='string')
-    block_count = np.array([])
-    swipe_count = np.array([])
+    #idArray = np.array([], dtype='string')
+    idArray = []
+    #idArray = np.zeros(len(decimalArray))
+    #block_count = np.array([])
+    #swipe_count = []
     k = 0
     for i in decimalArray:
         if i == 1:
-            idArray = np.append(idArray, '1')
-        elif i == 2:
-            idArray = np.append(idArray, '2')
-            swipe_count = np.append(swipe_count, k)
-        elif i == 3:
-            idArray = np.append(idArray, '12')
-            block_count = np.append(block_count, k)
-        elif i == 4:
-            idArray = np.append(idArray, '3')
-        elif i == 8:
-            idArray = np.append(idArray, '4')
-        k += 1
-    return idArray.astype(int), block_count, swipe_count
+            #idArray = np.append(idArray, '1')
 
+            idArray.append(tuple([1, k]))
+        elif i == 2:
+            #idArray = np.append(idArray, '2')
+
+            idArray.append(tuple([2, k]))
+        elif i == 3:
+            #idArray = np.append(idArray, '12')
+            idArray.append(tuple([12, k]))
+        elif i == 4:
+            #idArray = np.append(idArray, '3')
+
+            idArray.append(tuple([3, k]))
+        elif i == 8:
+            #idArray = np.append(idArray, '4')
+
+            idArray.append(tuple([4, k]))
+        k += 1
+    #return idArray.astype(int)
+    return idArray
 ############
 
 # File directory
 #filePath = "rssiData/rsbits"
 #allFiles = glob.glob(filePath + "/*rssi_1.csv")
-filePath = "gestureData"
-allFiles = glob.glob(filePath + "/subject_ahmad/swipe_ahmad_l1_final.csv")
+filePath = "gestureData/subject_ambuj"
+#allFiles = glob.glob(filePath + "/subject_ambuj/swipe_ambuj_l1_final.csv")
+allFiles = glob.glob(filePath + "/block_ambuj_l1_final.csv")
 
 # Read all files and create dataset
 list_ = []
@@ -127,7 +137,7 @@ for file_ in allFiles:
     list_.append(df)
 rssiData = pd.concat(list_)
 
-meanRssi = -105 # Hardcoded
+meanRssi = -100 # Hardcoded
 
 # Parameters
 sample_period = 1e-3
@@ -182,11 +192,11 @@ for column in rssiData:
     timeFrame[column+'_time'] = x
 
     # Find transitions between 0s and 1s
-    transitions = np.where(rssiVals[:-1] != rssiVals[1:])[0]
-    transitionTimes = x[transitions]
-    transitionVals = rssiVals[transitions]
+#    transitions = np.where(rssiVals[:-1] != rssiVals[1:])[0]
+#    transitionTimes = x[transitions]
+#    transitionVals = rssiVals[transitions]
 
-rssiData.to_csv("rssivals.csv")
+#rssiData.to_csv("rssivals.csv")
 
 # Extract preamble sequence from received RSSI
 sequences = []
@@ -213,42 +223,83 @@ print "Accuracy:", accuracy, "%"
 
 ########################################
 # Extract Decimal Array
-bitStream_2, compressedBits_2 = extractBits_2(sequences, preambleSequence, samplesPerBit, nbits)
-compressedBits_2 = [x for x in compressedBits_2 if x != []]
-compressedBits_2 = np.asarray(compressedBits_2)
-compressedBits_2 = compressedBits_2.astype(int)
-decimalArray = [bool2int(x) for x in compressedBits_2]
+dataBitStream, dataBits = extractDataBits(sequences, preambleSequence, samplesPerBit, nbits)
+dataBits = [x for x in dataBits if x != []]
+dataBits = np.asarray(dataBits)
+dataBits = dataBits.astype(int)
+decimalArray = [bool2int(x) for x in dataBits]
 
 # Determine node identifiers (passive Switch)
-identifiers, block_count, swipe_count = getIdentifiers(decimalArray) 
+#identifiers, block_count, swipe_count = getIdentifiers(decimalArray)
+ids = getIdentifiers(decimalArray)
+
+## Check if there is a block
+block = []
+for i in ids:
+    if (i[0] == 12):
+        block.append(i)
+
+test = np.zeros(len(decimalArray))
+for i in block:
+    index  = i[1]
+    test[index] = i[0]
+##
+
+
+counter = []
+counterArray = [[]]*len(allData)
+k = 0
+blockCount = 0
+for i in allData:
+    count = 0
+    for j in range(1, len(i)):
+        index = i[j][1]
+        id_ = i[j][0]
+        previous_index = i[j-1][1]
+        previous_id = i[j-1][0]
+        if abs(index - previous_index == 1):
+            count = count + 1
+        #elif count > 0:
+        else:
+            counter.append(tuple((previous_id, count, previous_index)))
+            count = 0
+        # Detect block
+        if (id_ == 12 and index - previous_index > 5):
+            blockCount = blockCount + 1
+
+    counterArray[k] = counter
+    counter = []
+    k = k + 1
+
+#times = getTimes(ids, decimalArray)
+
+np.savetxt('block_l1.csv', ids, delimiter = ',')
 
 # Determine gestures
-if len(block_count) > 0:
-    count = 0
-    block = 0
-    for i in range(1, len(block_count)):
-        if abs(block_count[i-1] - block_count[i]) > 5:
-            print 'block'
-            block += 1
-            count += 1
+#if len(block_count) > 0:
+#    count = 0
+#    block = 0
+#    for i in range(1, len(block_count)):
+#        if abs(block_count[i-1] - block_count[i]) > 5:
+#            print 'block'
+#            block += 1
+#            count += 1
 
-if len(swipe_count) > 0:
-    count = 0
-    swipe = 0
-    twotaps = np.array([])
-    # Detect swipe
-    for i in range(1, len(swipe_count)):
-        if abs(swipe_count[i] - swipe_count[i-1] < 3 and swipe_count[i] - swipe_count[i-1] > 0):
-            count += 1
-        elif abs(swipe_count[i] - swipe_count[i-1] > 10 and count > 1):
-            print 'swipe'
-            twotaps = np.append(twotaps, swipe_count[i] - swipe_count[i-1])   
-            swipe += 1
-            count = 0
-         # Detect blocks
-         #if (swipe % 2 == 0):
-
-
+#if len(swipe_count) > 0:
+#    count = 0
+#    swipe = 0
+#    twotaps = np.array([])
+#    # Detect swipe
+#    for i in range(1, len(swipe_count)):
+#        if abs(swipe_count[i] - swipe_count[i-1] < 3 and swipe_count[i] - swipe_count[i-1] > 0):
+#            count += 1
+#        elif abs(swipe_count[i] - swipe_count[i-1] > 10 and count > 1):
+#            print 'swipe'
+#            twotaps = np.append(twotaps, swipe_count[i] - swipe_count[i-1])
+#            swipe += 1
+#            count = 0
+#         # Detect blocks
+#         #if (swipe % 2 == 0):
 ########################################
 
 # Plot data
