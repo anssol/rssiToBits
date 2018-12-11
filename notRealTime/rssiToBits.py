@@ -126,9 +126,10 @@ def getIdentifiers(decimalArray):
 # File directory
 #filePath = "rssiData/rsbits"
 #allFiles = glob.glob(filePath + "/*rssi_1.csv")
-filePath = "gestureData/subject_ambuj"
+filePath = "gestureData"
 #allFiles = glob.glob(filePath + "/subject_ambuj/swipe_ambuj_l1_final.csv")
-allFiles = glob.glob(filePath + "/block_ambuj_l1_final.csv")
+#allFiles = glob.glob(filePath + "/block_ambuj_l1_final.csv")
+allFiles = glob.glob(filePath + "/swipe_el_l1.csv")
 
 # Read all files and create dataset
 list_ = []
@@ -137,7 +138,7 @@ for file_ in allFiles:
     list_.append(df)
 rssiData = pd.concat(list_)
 
-meanRssi = -100 # Hardcoded
+meanRssi = -104 # Hardcoded
 
 # Parameters
 sample_period = 1e-3
@@ -149,9 +150,6 @@ samplesPerBit = int(bitDuration/sample_period)
 samplesPerBit = 10
 preamble = np.array([0, 1, 1, 0])
 preambleSequence = generatePreambleSequence(preamble, samplesPerBit)
-#preambleSequence_2 = preambleSequence
-#preambleSequence_3 = preambleSequence_2[1:]
-#preambleSequence[10] = 0
 
 # r1 = receiver 1, r2 = receiver 2, etc ...
 rssiData.columns = ['r1']
@@ -167,12 +165,13 @@ for column in rssiData:
     rssi = []
     dropCount = 0
     for i in range(0, len(rssiVals)):
-        if rssiVals[i] < -50 and rssiVals[i] > -130:
+        if rssiVals[i] < -50 and rssiVals[i] > -150:
             rssi.append(rssiVals[i])
         else:
             dropCount += 1
 
     rssiVals = rssi
+    print rssi
 
     #rssiVals = np.append(rssiVals, np.zeros(dropCount)) # Fix length
     rssiVals = np.append(rssiVals, [-120]*dropCount) # Fix length
@@ -190,11 +189,6 @@ for column in rssiData:
 
     # Create dataFrame of time samples
     timeFrame[column+'_time'] = x
-
-    # Find transitions between 0s and 1s
-#    transitions = np.where(rssiVals[:-1] != rssiVals[1:])[0]
-#    transitionTimes = x[transitions]
-#    transitionVals = rssiVals[transitions]
 
 #rssiData.to_csv("rssivals.csv")
 
@@ -234,46 +228,20 @@ decimalArray = [bool2int(x) for x in dataBits]
 ids = getIdentifiers(decimalArray)
 
 ## Check if there is a block
-block = []
-for i in ids:
-    if (i[0] == 12):
-        block.append(i)
-
-test = np.zeros(len(decimalArray))
-for i in block:
-    index  = i[1]
-    test[index] = i[0]
-##
-
-
-counter = []
-counterArray = [[]]*len(allData)
-k = 0
-blockCount = 0
-for i in allData:
-    count = 0
-    for j in range(1, len(i)):
-        index = i[j][1]
-        id_ = i[j][0]
-        previous_index = i[j-1][1]
-        previous_id = i[j-1][0]
-        if abs(index - previous_index == 1):
-            count = count + 1
-        #elif count > 0:
-        else:
-            counter.append(tuple((previous_id, count, previous_index)))
-            count = 0
-        # Detect block
-        if (id_ == 12 and index - previous_index > 5):
-            blockCount = blockCount + 1
-
-    counterArray[k] = counter
-    counter = []
-    k = k + 1
+#block = []
+#for i in ids:
+#    if (i[0] == 12):
+#        block.append(i)
+#
+#test = np.zeros(len(decimalArray))
+#for i in block:
+#    index  = i[1]
+#    test[index] = i[0]
+###
 
 #times = getTimes(ids, decimalArray)
 
-np.savetxt('block_l1.csv', ids, delimiter = ',')
+#np.savetxt('block_l1.csv', ids, delimiter = ',')
 
 # Determine gestures
 #if len(block_count) > 0:
@@ -303,9 +271,13 @@ np.savetxt('block_l1.csv', ids, delimiter = ',')
 ########################################
 
 # Plot data
-plt.step(timeFrame['r1_time'][5000:30000], rssiData['r1'][5000:30000])
+times = np.arange(0, len(decimalArray))
+plt.step(times, decimalArray)
+#plt.scatter(times, decimalArray)
+#plt.plot(times, decimalArray)
+#plt.step(timeFrame['r1_time'][5000:30000], rssiData['r1'][5000:30000])
 #plt.step(timeFrame['r1_time'], rssiData['r1'])
 #plt.step(timeFrame['r1_time'][0:5000], rssiData['r1'][0:5000])
-plt.ylim([-0.2, 1.2])
-plt.ylabel("Digitized Signal")
+#plt.ylim([-0.2, 1.2])
+#plt.ylabel("Digitized Signal")
 plt.show()
