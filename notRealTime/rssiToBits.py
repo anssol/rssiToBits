@@ -138,7 +138,7 @@ for file_ in allFiles:
     list_.append(df)
 rssiData = pd.concat(list_)
 
-meanRssi = -104 # Hardcoded
+meanRssi = -110 # Hardcoded
 
 # Parameters
 sample_period = 1e-3
@@ -272,7 +272,23 @@ ids = getIdentifiers(decimalArray)
 
 # Plot data
 times = np.arange(0, len(decimalArray))
+d = {'times': times, 'decimalArray': decimalArray}
+df = pd.DataFrame(data=d)
+df.to_csv('received_swipe_l1.csv')
 plt.step(times, decimalArray)
+
+############# Test ###################
+#plt.subplot(2,1,1)
+#plt.plot(rssi[18500:22000])
+
+#plt.subplot(2,1,2)
+#a = np.asarray(timeFrame['r1_time'])
+#plt.step(a[18500:22000], rssiVals[18500:22000])
+#plt.show()
+#####################################
+
+#np.savetxt('received_swipe_l1.csv', np.transpose([times,decimalArray]))
+#np.savetxt('received_swipeID_l1.csv', ids, delimiter = ',')
 #plt.scatter(times, decimalArray)
 #plt.plot(times, decimalArray)
 #plt.step(timeFrame['r1_time'][5000:30000], rssiData['r1'][5000:30000])
