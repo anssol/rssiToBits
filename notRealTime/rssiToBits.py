@@ -129,7 +129,7 @@ def getIdentifiers(decimalArray):
 filePath = "gestureData"
 #allFiles = glob.glob(filePath + "/subject_ambuj/swipe_ambuj_l1_final.csv")
 #allFiles = glob.glob(filePath + "/block_ambuj_l1_final.csv")
-allFiles = glob.glob(filePath + "/swipe_el_l1.csv")
+allFiles = glob.glob(filePath + "/twoTap_el_l1.csv")
 
 # Read all files and create dataset
 list_ = []
@@ -138,7 +138,7 @@ for file_ in allFiles:
     list_.append(df)
 rssiData = pd.concat(list_)
 
-meanRssi = -110 # Hardcoded
+meanRssi = -103 # Hardcoded
 
 # Parameters
 sample_period = 1e-3
@@ -274,8 +274,8 @@ ids = getIdentifiers(decimalArray)
 times = np.arange(0, len(decimalArray))
 d = {'times': times, 'decimalArray': decimalArray}
 df = pd.DataFrame(data=d)
-df.to_csv('received_swipe_l1.csv')
-plt.step(times, decimalArray)
+df.to_csv('received_twoTaps_l1.csv')
+#plt.step(times, decimalArray)
 
 ############# Test ###################
 #plt.subplot(2,1,1)
@@ -285,15 +285,28 @@ plt.step(times, decimalArray)
 #a = np.asarray(timeFrame['r1_time'])
 #plt.step(a[18500:22000], rssiVals[18500:22000])
 #plt.show()
-#####################################
 
-#np.savetxt('received_swipe_l1.csv', np.transpose([times,decimalArray]))
+#plt.subplot(2,1,1)
+#plt.plot(rssi[19500:20500])
+
+#plt.subplot(2,1,2)
+#plt.plot(rssiVals[19500:20500])
+#plt.ylim([-0.2, 1.2])
+#plt.show
+#####################################
+#rssiVals = rssiVals[19500:20500]
+#rssi = rssi[19500:20500]
+
+rssiVals = rssiVals[1:]
+d = {'rssi': rssi, 'rssiVals': rssiVals}
+df_2 = pd.DataFrame(data=d)
+df_2.to_csv('rssi_twoTaps_l1.csv')
+
+#np.savetxt('rssi_swipe_l1.csv', np.transpose([rssi, rssiVals]))
 #np.savetxt('received_swipeID_l1.csv', ids, delimiter = ',')
 #plt.scatter(times, decimalArray)
-#plt.plot(times, decimalArray)
+plt.plot(times, decimalArray)
 #plt.step(timeFrame['r1_time'][5000:30000], rssiData['r1'][5000:30000])
 #plt.step(timeFrame['r1_time'], rssiData['r1'])
 #plt.step(timeFrame['r1_time'][0:5000], rssiData['r1'][0:5000])
-#plt.ylim([-0.2, 1.2])
-#plt.ylabel("Digitized Signal")
-plt.show()
+plt.ylim([-0.2, 1.2])
