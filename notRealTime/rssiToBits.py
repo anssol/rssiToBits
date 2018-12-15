@@ -114,9 +114,11 @@ def getIdentifiers(decimalArray):
             #idArray = np.append(idArray, '3')
 
             idArray.append(tuple([3, k]))
+        elif i == 6:
+            idArray.append(tuple([23, k]))
+
         elif i == 8:
             #idArray = np.append(idArray, '4')
-
             idArray.append(tuple([4, k]))
         k += 1
     #return idArray.astype(int)
@@ -129,7 +131,7 @@ def getIdentifiers(decimalArray):
 filePath = "gestureData"
 #allFiles = glob.glob(filePath + "/subject_ambuj/swipe_ambuj_l1_final.csv")
 #allFiles = glob.glob(filePath + "/block_ambuj_l1_final.csv")
-allFiles = glob.glob(filePath + "/twoTap_el_l1.csv")
+allFiles = glob.glob(filePath + "/block_l1.csv")
 
 # Read all files and create dataset
 list_ = []
@@ -138,7 +140,7 @@ for file_ in allFiles:
     list_.append(df)
 rssiData = pd.concat(list_)
 
-meanRssi = -103 # Hardcoded
+meanRssi = -105 # Hardcoded
 
 # Parameters
 sample_period = 1e-3
@@ -268,16 +270,16 @@ ids = getIdentifiers(decimalArray)
 #            count = 0
 #         # Detect blocks
 #         #if (swipe % 2 == 0):
-########################################
+###########################################
 
 # Plot data
 times = np.arange(0, len(decimalArray))
 d = {'times': times, 'decimalArray': decimalArray}
 df = pd.DataFrame(data=d)
-df.to_csv('received_twoTaps_l1.csv')
+df.to_csv('received_block_l1.csv')
 #plt.step(times, decimalArray)
 
-############# Test ###################
+################# Test #######################
 #plt.subplot(2,1,1)
 #plt.plot(rssi[18500:22000])
 
@@ -292,15 +294,15 @@ df.to_csv('received_twoTaps_l1.csv')
 #plt.subplot(2,1,2)
 #plt.plot(rssiVals[19500:20500])
 #plt.ylim([-0.2, 1.2])
-#plt.show
-#####################################
+#plt.show()
+#############################################
 #rssiVals = rssiVals[19500:20500]
 #rssi = rssi[19500:20500]
 
 rssiVals = rssiVals[1:]
 d = {'rssi': rssi, 'rssiVals': rssiVals}
 df_2 = pd.DataFrame(data=d)
-df_2.to_csv('rssi_twoTaps_l1.csv')
+df_2.to_csv('rssi_block_l1.csv')
 
 #np.savetxt('rssi_swipe_l1.csv', np.transpose([rssi, rssiVals]))
 #np.savetxt('received_swipeID_l1.csv', ids, delimiter = ',')
