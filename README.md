@@ -1,1 +1,1 @@
-# rssi_scan
+# Extract digital signals from raw RSSI information.
